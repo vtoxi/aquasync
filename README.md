@@ -33,6 +33,9 @@ fails safe instead of failing dry.
 - Local 0.96" OLED shows the same state on the device itself, and a
   physical button cycles auto/manual-on/manual-off so the tank is still
   operable by hand if WiFi or the broker is down.
+- Serves a small authenticated web page for OTA firmware updates, so
+  upgrading a board mounted inside a tank enclosure doesn't mean pulling
+  it down to re-flash over USB.
 
 ## Hardware
 
@@ -48,6 +51,7 @@ WaterLevelSensor  --  median-filtered %, fault detection
 MotorController   --  hysteresis + runtime safety cutoff, owns the relay
 DisplayUI         --  renders current state to the OLED
 MqttHandler       --  publishes state / receives commands, OpenHAB-facing
+OtaHandler        --  serves the web OTA upload page, flashes new firmware
 main.cpp          --  wires the above together, non-blocking main loop
 ```
 
@@ -70,6 +74,43 @@ pio run --target upload
 `include/config.h` is gitignored on purpose -- it's the only file that
 holds anything specific to one install (WiFi credentials, broker
 address, tank dimensions).
+
+## Updating over WiFi (OTA)
+
+Once a board is running AquaSync with OTA support, later firmware
+upgrades don't need USB access:
+
+1. Grab the `.bin` from the project's [Releases](../../releases) page
+   (each release is built and attached automatically by
+   [`release.yml`](.github/workflows/release.yml) when a version tag is
+   pushed).
+2. Browse to `http://aquasync.local/` (or the device's IP -- check your
+   router, or `aquasync/level` etc. going stale in OpenHAB is a hint it's
+   worth looking up) and log in with `OTA_USERNAME`/`OTA_PASSWORD` from
+   `config.h`.
+3. Upload the `.bin`. The board writes it to the inactive OTA partition
+   and reboots into it automatically.
+
+`aquasync/version` (retained) reflects the running firmware version over
+MQTT, so you can confirm an update took without opening the web page again.
+
+This is plain HTTP on the local network, same trust model as the MQTT
+broker -- don't port-forward it to the internet, and change
+`OTA_PASSWORD` from the example default.
+
+A board with no AquaSync firmware on it yet has no OTA page to talk to --
+the first flash always has to happen over USB (`pio run --target upload`).
+
+## Cutting a release
+
+```bash
+git tag v1.2.0
+git push --tags
+```
+
+pushes a tag, which triggers the release workflow to build the firmware,
+stamp `include/Version.h` with that version, and attach the resulting
+`.bin` to a new GitHub Release.
 
 ## OpenHAB integration
 

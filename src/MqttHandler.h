@@ -12,6 +12,8 @@
 //   <prefix>/motor        (pub, retained)  "ON" | "OFF"
 //   <prefix>/mode         (pub, retained)  "AUTO" | "MANUAL_ON" | "MANUAL_OFF"
 //   <prefix>/fault        (pub, retained)  "OK" | "SENSOR" | "SAFETY_TRIP"
+//   <prefix>/version      (pub, retained)  firmware version (see Version.h) --
+//                                           lets OpenHAB confirm an OTA update took
 //   <prefix>/cmd/mode     (sub)            set mode from OpenHAB
 //   <prefix>/cmd/reset    (sub)            any payload clears a safety trip
 class MqttHandler {
@@ -22,6 +24,11 @@ public:
 
     void begin();
     void loop(); // call every iteration; reconnects as needed
+
+    // Public only so the free function that bridges PubSubClient's plain
+    // function-pointer callback can reach it -- not meant to be called
+    // from outside that bridge.
+    void onMessage(char* topic, uint8_t* payload, unsigned int length);
 
     void publishState(uint8_t levelPercent, bool motorRunning, MotorMode mode,
                        bool sensorFaulted, bool safetyTripped);
@@ -46,5 +53,4 @@ private:
     bool pendingReset_ = false;
 
     void reconnect();
-    void onMessage(char* topic, uint8_t* payload, unsigned int length);
 };

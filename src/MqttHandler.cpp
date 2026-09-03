@@ -1,4 +1,5 @@
 #include "MqttHandler.h"
+#include "Version.h"
 
 namespace {
 // PubSubClient's callback is a plain function pointer, so it can't bind
@@ -40,6 +41,9 @@ void MqttHandler::reconnect() {
     if (ok) {
         client_.subscribe((prefix_ + "/cmd/mode").c_str());
         client_.subscribe((prefix_ + "/cmd/reset").c_str());
+        // Doesn't change without a flash, so publishing once per connect
+        // (rather than every publishState()) is enough.
+        client_.publish((prefix_ + "/version").c_str(), FIRMWARE_VERSION, true);
     }
     // Deliberately not blocking/retrying with delay() here -- main.cpp's
     // loop keeps running (sensor reads, safety checks) even while MQTT

@@ -8,6 +8,7 @@
 #include "MotorController.h"
 #include "DisplayUI.h"
 #include "MqttHandler.h"
+#include "OtaHandler.h"
 
 namespace {
 constexpr uint32_t kLoopIntervalMs = 2000;    // full sensor-read + control cycle
@@ -18,6 +19,7 @@ MotorController motor(PIN_RELAY, LOW_THRESHOLD_PCT, HIGH_THRESHOLD_PCT, MAX_RUNT
 DisplayUI display;
 WiFiClient netClient;
 MqttHandler mqtt(netClient, MQTT_HOST, MQTT_PORT, MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD, MQTT_TOPIC_PREFIX);
+OtaHandler ota(OTA_USERNAME, OTA_PASSWORD, OTA_HOSTNAME);
 
 uint32_t lastWifiAttemptMs = 0;
 bool lastButtonState = HIGH;
@@ -65,6 +67,7 @@ void setup() {
     }
 
     connectWifi();
+    ota.begin();
 }
 
 void loop() {
@@ -72,6 +75,7 @@ void loop() {
 
     connectWifi();
     mqtt.loop();
+    ota.loop();
     handleManualButton();
 
     if (mqtt.hasModeCommand()) {

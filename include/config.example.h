@@ -17,6 +17,14 @@
 #define MQTT_CLIENT_ID  "aquasync-01"
 #define MQTT_TOPIC_PREFIX "aquasync"    // publishes under aquasync/level, aquasync/motor, ...
 
+// ---- OTA (upload a new firmware .bin at http://OTA_HOSTNAME.local/) ----
+// Plain HTTP Basic Auth -- fine on a trusted home LAN, don't expose this
+// port to the internet. Change the password; the OTA endpoint can flash
+// arbitrary firmware to the board.
+#define OTA_USERNAME    "admin"
+#define OTA_PASSWORD    "change-me"
+#define OTA_HOSTNAME    "aquasync"      // reachable at http://aquasync.local/
+
 // ---- Tank geometry -----------------------------------------------------
 // Sensor is mounted at the top of the tank, facing straight down.
 #define TANK_HEIGHT_CM       150   // distance from sensor face to tank bottom
