@@ -1,0 +1,58 @@
+name: release
+
+# Tag a commit (e.g. `git tag v1.2.0 && git push --tags`) to build and
+# publish that firmware as a GitHub Release. Existing installs pick it up
+# by downloading the .bin asset and uploading it at http://aquasync.local/
+# (see OtaHandler); a brand new board still needs the first flash over USB.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Provide local config (real credentials are gitignored)
+        run: cp include/config.example.h include/config.h
+
+      - name: Stamp firmware version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/#define FIRMWARE_VERSION .*/#define FIRMWARE_VERSION \"$VERSION\"/" include/Version.h
+
+      - name: Build
+        run: pio run
+
+      - name: Rename firmware binary
+        run: cp .pio/build/esp32dev/firmware.bin "aquasync-${GITHUB_REF_NAME}.bin"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: aquasync-${{ github.ref_name }}.bin
+          generate_release_notes: true
+          body: |
+            Firmware build of AquaSync ${{ github.ref_name }}.
+
+            **Upgrading an existing board (OTA):** download `aquasync-${{ github.ref_name }}.bin`
+            below, browse to `http://aquasync.local/` (or the device's IP),
+            log in with your `OTA_USERNAME`/`OTA_PASSWORD`, and upload it.
+
+            **Flashing a new board:** this asset is the application image
+            only -- build and flash over USB instead with
+            `pio run --target upload`.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
